@@ -21,6 +21,7 @@ import { communityRouter } from '@api/routes/community';
 import { courseRouter } from '@api/routes/course';
 import { dashAnalyticsRouter } from '@api/routes/dash';
 import { domainRouter } from '@api/routes/domain/domain';
+import { getDevBypassSession, isDevAuthBypassEnabled } from '@api/middlewares/dev-auth-bypass';
 import { internalRouter } from '@api/routes/internal';
 import { inviteRouter } from '@api/routes/invite';
 import { jobsRouter } from '@api/routes/jobs';
@@ -71,6 +72,25 @@ export const app = new Hono()
       c.set('orgRoles', {});
 
       return next();
+    }
+
+    // DEV AUTH BYPASS — impersonate every request as AUTH_BYPASS_EMAIL.
+    // Better Auth routes (/api/auth/*) are matched later and more
+    // specifically, so they still hit the real auth handler below.
+    if (isDevAuthBypassEnabled() && !c.req.path.startsWith('/api/auth/')) {
+      const bypassSession = await getDevBypassSession();
+
+      if (bypassSession) {
+        c.set('user', bypassSession.user as never);
+        c.set('session', bypassSession.session as never);
+        c.set('orgRoles', bypassSession.orgRoles);
+
+        await next();
+
+        return;
+      }
+
+      console.error('[dev-auth-bypass] enabled but no bypass session could be built — see errors above');
     }
 
     let session: Awaited<ReturnType<typeof auth.api.getSession>> | null = null;
@@ -228,7 +248,8 @@ export const app = new Hono()
 
     return c.json({
       session,
-      user
+      user,
+      orgRoles: c.get('orgRoles')
     });
   })
   .route('/onboarding', onboardingRouter)

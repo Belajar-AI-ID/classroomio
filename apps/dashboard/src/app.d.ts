@@ -15,6 +15,7 @@ declare global {
       session: TSession | null;
       profile: TProfile | null;
       organizations: AccountOrganization[];
+      orgRoles?: Record<string, number>;
       fromSessions?: boolean;
       // getAccount: () =>
     }

@@ -67,9 +67,12 @@
 
     setTheme(data.org.theme || 'blue');
   });
-
   const session = authClient.useSession();
-  const isSessionReady = $derived(!$session.isPending && !$session.isRefetching && $session.data);
+  const isSessionReady = $derived(
+    data.authBypass
+      ? !!data.locals?.user
+      : !$session.isPending && !$session.isRefetching && !!$session.data
+  );
   const appOrgParams = $derived(resolveAppOrgParams(data, page.url.pathname, page.params.slug));
 
   /*
@@ -78,6 +81,7 @@
     setupApp runs once per session to load /account. After that, org context can
     still change when a logged-in user navigates to a different tenant subdomain
     or opens another /org/[slug] on the app host — without another setupApp run.
+
     syncOrgContext re-pins currentOrg from the URL + cached account data.
   */
   $effect(() => {
@@ -86,7 +90,15 @@
     }
 
     if (!appInitApi.isInitializedAndReady) {
-      appInitApi.setupApp($session.data as App.Locals, appOrgParams);
+      appInitApi.setupApp(
+        (data.authBypass ? (data.locals as App.Locals) : ($session.data as App.Locals)) ?? {
+          user: null,
+          session: null,
+          profile: null,
+          organizations: []
+        },
+        appOrgParams
+      );
       return;
     }
 
