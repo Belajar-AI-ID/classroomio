@@ -74,12 +74,11 @@ export const app = new Hono()
       return next();
     }
 
-    // DEV AUTH BYPASS — impersonate requests carrying a signed dev_user
-    // cookie as that cookie's user. Better Auth routes (/api/auth/*) are
-    // matched later and more specifically, so they still hit the real auth
-    // handler below.
+    // DEV AUTH BYPASS — impersonate every request as AUTH_BYPASS_EMAIL.
+    // Better Auth routes (/api/auth/*) are matched later and more
+    // specifically, so they still hit the real auth handler below.
     if (isDevAuthBypassEnabled() && !c.req.path.startsWith('/api/auth/')) {
-      const bypassSession = await getDevBypassSession(c.req.header('cookie'));
+      const bypassSession = await getDevBypassSession();
 
       if (bypassSession) {
         c.set('user', bypassSession.user as never);
@@ -91,8 +90,7 @@ export const app = new Hono()
         return;
       }
 
-      // No (valid) dev cookie — fall through to the normal Better Auth
-      // lookup so non-dev sessions, if any, still work.
+      console.error('[dev-auth-bypass] enabled but no bypass session could be built — see errors above');
     }
 
     let session: Awaited<ReturnType<typeof auth.api.getSession>> | null = null;

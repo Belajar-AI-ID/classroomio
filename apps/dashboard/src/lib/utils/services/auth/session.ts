@@ -8,20 +8,12 @@ import { getCioCookieString } from '$lib/utils/functions/cookies';
  * DEV AUTH BYPASS — temporary, must never be merged or deployed.
  *
  * When AUTH_BYPASS is enabled on the API, the dashboard can resolve its
- * locals from the API's /session endpoint by forwarding the signed dev_user
- * cookie set by the dev account picker, without any Better Auth cookies.
+ * locals from the API's /session endpoint without any Better Auth cookies,
+ * so pages render as AUTH_BYPASS_EMAIL without signing in.
  */
-async function getThroughDevBypass(cookies: Cookies): Promise<App.Locals | null> {
+async function getThroughDevBypass(): Promise<App.Locals | null> {
   try {
-    const devCookie = cookies.get('classroomio.dev_user');
-
-    if (!devCookie) return null;
-
-    const session = await classroomio.session.$get(undefined, {
-      headers: {
-        cookie: `classroomio.dev_user=${encodeURIComponent(devCookie)}`
-      }
-    });
+    const session = await classroomio.session.$get();
     const data = (await session.json()) as App.Locals & { orgRoles?: Record<string, number> };
 
     if (!data?.user) return null;
@@ -35,12 +27,15 @@ async function getThroughDevBypass(cookies: Cookies): Promise<App.Locals | null>
 
 export const getSessionData = async (cookies: Cookies): Promise<App.Locals | null> => {
   try {
-    // DEV AUTH BYPASS — forward the signed dev_user cookie.
+    // DEV AUTH BYPASS — skip Better Auth cookies entirely.
     if (env.AUTH_BYPASS === 'true') {
-      const bypassLocals = await getThroughDevBypass(cookies);
+      const bypassLocals = await getThroughDevBypass();
       if (bypassLocals) {
+        console.log('[dev-auth-bypass] dashboard using bypass session');
         return bypassLocals;
       }
+
+      console.error('[dev-auth-bypass] enabled but API returned no session — check API logs');
     }
 
     const cioCookies = getCioCookieString(cookies);

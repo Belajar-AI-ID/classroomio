@@ -18,31 +18,6 @@
   import { buildSsoRedirectUrl, createSsoEmailChecker, type SsoAuthState } from '$features/auth/utils/auth-sso';
   import { authSsoStore, ensureSsoInfoLoaded } from '$features/auth/utils/auth-sso-store';
 
-  // DEV AUTH BYPASS — seed accounts exposed as one-click login buttons.
-  // Temporary branch-only feature; never merge.
-  interface DevAccount {
-    email: string;
-    label: string;
-    orgLabel: string;
-  }
-
-  const DEV_ACCOUNTS: DevAccount[] = [
-    { email: 'admin@test.com', label: 'Admin', orgLabel: 'Udemy Test' },
-    { email: 'student@test.com', label: 'Student', orgLabel: 'Udemy Test' },
-    { email: 'enterprise@test.com', label: 'Admin', orgLabel: 'Coursera Test' },
-    { email: 'enterprise-student@test.com', label: 'Student', orgLabel: 'Coursera Test' },
-    { email: 'early-adopter@test.com', label: 'Admin', orgLabel: 'Skillshare Test' },
-    { email: 'early-adopter-student@test.com', label: 'Student', orgLabel: 'Skillshare Test' }
-  ];
-
-  let devLoginLoading = $state('');
-
-  interface PageData {
-    authBypass: boolean;
-  }
-
-  let { data }: { data: PageData } = $props();
-
   const emailFromUrl = page.url.searchParams.get('email') ?? '';
   const isEmailPrefilled = !!emailFromUrl;
 
@@ -146,14 +121,6 @@
       loading = false;
     }
   }
-
-  // DEV AUTH BYPASS — one-click login as a seeded account.
-  function handleDevLogin(event: SubmitEvent) {
-    const form = event.currentTarget as HTMLFormElement;
-    const email = (new FormData(form).get('email') as string) || '';
-
-    devLoginLoading = email;
-  }
 </script>
 
 <svelte:head>
@@ -179,103 +146,74 @@
   </div>
 {/snippet}
 
-{#if data.authBypass}
-  <!-- DEV AUTH BYPASS — one-click account picker, branch-only, never merge. -->
-  <!-- Rendered outside AuthUI: its inner <form onsubmit={preventDefault}> would
-       nest inside our per-account forms and block their native submits. -->
-  <div class="mx-auto flex min-h-screen w-full max-w-md items-center p-4">
-    <div class="flex w-full flex-col gap-4 rounded-xl border p-6 shadow-sm" data-testid="dev-account-picker">
-      <h2 class="text-xl font-semibold">Welcome back</h2>
-      <p class="text-sm text-muted-foreground">Dev mode: pick an account to sign in as.</p>
+<AuthUI
+  isLogin={true}
+  {handleSubmit}
+  isLoading={loading}
+  {hideGoogleAuth}
+  getPasswordAuthAlternative={ssoState.available ? getPasswordAuthAlternative : undefined}
+>
+  <div class="flex flex-col gap-6">
+    <Field.Field>
+      <Field.Label for="email">{$t('login.email')}</Field.Label>
+      <Field.Content>
+        <Input
+          id="email"
+          type="email"
+          bind:value={fields.email}
+          data-testid="auth-login-email"
+          oninput={handleEmailChange}
+          placeholder="you@domain.com"
+          disabled={loading || isEmailPrefilled}
+          readonly={isEmailPrefilled}
+          autofocus
+          aria-invalid={errors.email ? 'true' : undefined}
+          autocomplete="username"
+        />
+        {#if errors.email}
+          <Field.Error>{$t(errors.email)}</Field.Error>
+        {/if}
+      </Field.Content>
+    </Field.Field>
 
-      {#each DEV_ACCOUNTS as account (account.email)}
-        <form method="POST" action="?/dev-login" onsubmit={handleDevLogin}>
-          <input type="hidden" name="email" value={account.email} />
-          <Button
-            type="submit"
-            variant="outline"
-            class="w-full justify-between"
-            loading={devLoginLoading === account.email}
-            disabled={devLoginLoading !== ''}
-            testId={`dev-login-${account.email}`}
-          >
-            <span>{account.label}</span>
-            <span class="text-xs text-muted-foreground">{account.orgLabel} · {account.email}</span>
-          </Button>
-        </form>
-      {/each}
-    </div>
-  </div>
-{:else}
-  <AuthUI
-    isLogin={true}
-    {handleSubmit}
-    isLoading={loading}
-    {hideGoogleAuth}
-    getPasswordAuthAlternative={ssoState.available ? getPasswordAuthAlternative : undefined}
-  >
-    <div class="flex flex-col gap-6">
+    <!-- Password Section (when not force SSO and email/password not disabled) -->
+    {#if !ssoState.required && !($globalStore.isOrgSite && $currentOrg.disableEmailPassword)}
       <Field.Field>
-        <Field.Label for="email">{$t('login.email')}</Field.Label>
+        <div class="flex items-center justify-between">
+          <Field.Label for="password">{$t('login.password')}</Field.Label>
+          <a class="ui:text-primary text-sm hover:underline" href={resolve('/forgot', {})}>
+            {$t('login.forgot')}
+          </a>
+        </div>
         <Field.Content>
-          <Input
-            id="email"
-            type="email"
-            bind:value={fields.email}
-            data-testid="auth-login-email"
-            oninput={handleEmailChange}
-            placeholder="you@domain.com"
-            disabled={loading || isEmailPrefilled}
-            readonly={isEmailPrefilled}
-            autofocus
-            aria-invalid={errors.email ? 'true' : undefined}
-            autocomplete="username"
+          <Password
+            id="password"
+            bind:value={fields.password}
+            data-testid="auth-login-password"
+            placeholder="************"
+            disabled={loading}
+            aria-invalid={errors.password ? 'true' : undefined}
+            autocomplete="current-password"
           />
-          {#if errors.email}
-            <Field.Error>{$t(errors.email)}</Field.Error>
+          {#if errors.password}
+            <Field.Error>{$t(errors.password)}</Field.Error>
           {/if}
         </Field.Content>
       </Field.Field>
 
-      <!-- Password Section (when not force SSO and email/password not disabled) -->
-      {#if !ssoState.required && !($globalStore.isOrgSite && $currentOrg.disableEmailPassword)}
-        <Field.Field>
-          <div class="flex items-center justify-between">
-            <Field.Label for="password">{$t('login.password')}</Field.Label>
-            <a class="ui:text-primary text-sm hover:underline" href={resolve('/forgot', {})}>
-              {$t('login.forgot')}
-            </a>
-          </div>
-          <Field.Content>
-            <Password
-              id="password"
-              bind:value={fields.password}
-              data-testid="auth-login-password"
-              placeholder="************"
-              disabled={loading}
-              aria-invalid={errors.password ? 'true' : undefined}
-              autocomplete="current-password"
-            />
-            {#if errors.password}
-              <Field.Error>{$t(errors.password)}</Field.Error>
-            {/if}
-          </Field.Content>
-        </Field.Field>
-
-        {#if submitError}
-          <p class="ui:text-destructive text-sm">{submitError}</p>
-        {/if}
-
-        <Button type="submit" disabled={loading} {loading} class="w-full" testId="auth-login-submit">
-          {$t('login.login')}
-        </Button>
-      {:else if $globalStore.isOrgSite && $currentOrg.disableEmailPassword && !ssoState.available}
-        <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
-          <p class="text-sm text-amber-800 dark:text-amber-200">
-            {$t('settings.auth.login.email_password_disabled_message')}
-          </p>
-        </div>
+      {#if submitError}
+        <p class="ui:text-destructive text-sm">{submitError}</p>
       {/if}
-    </div>
-  </AuthUI>
-{/if}
+
+      <Button type="submit" disabled={loading} {loading} class="w-full" testId="auth-login-submit">
+        {$t('login.login')}
+      </Button>
+    {:else if $globalStore.isOrgSite && $currentOrg.disableEmailPassword && !ssoState.available}
+      <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
+        <p class="text-sm text-amber-800 dark:text-amber-200">
+          {$t('settings.auth.login.email_password_disabled_message')}
+        </p>
+      </div>
+    {/if}
+  </div>
+</AuthUI>

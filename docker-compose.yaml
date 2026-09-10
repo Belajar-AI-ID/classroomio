@@ -143,6 +143,7 @@ services:
       SKIP_DB_SETUP: ${SKIP_DB_SETUP:-}
       # DEV AUTH BYPASS — dev/auth-bypass branch only; never enable in production
       AUTH_BYPASS: ${AUTH_BYPASS:-}
+      AUTH_BYPASS_EMAIL: ${AUTH_BYPASS_EMAIL:-}
     restart: unless-stopped
 
   dashboard:
@@ -183,6 +184,7 @@ services:
       UPLOAD_MAX_THUMBNAIL_MB: ${UPLOAD_MAX_THUMBNAIL_MB:-}
       # DEV AUTH BYPASS — mirrors the api service (dev/auth-bypass branch only)
       AUTH_BYPASS: ${AUTH_BYPASS:-}
+      AUTH_BYPASS_EMAIL: ${AUTH_BYPASS_EMAIL:-}
     restart: unless-stopped
 
   # Background worker (BullMQ). Drains the Redis queue: video processing, transcription,
