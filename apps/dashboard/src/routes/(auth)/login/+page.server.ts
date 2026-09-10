@@ -16,7 +16,7 @@ const DEV_COOKIE_NAME = 'classroomio.dev_user';
 const DEV_COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days, mirrors API bypass session
 
 function signDevUserCookie(email: string): string {
-  const key = process.env.PRIVATE_SERVER_KEY || '';
+  const key = env.PRIVATE_SERVER_KEY || '';
 
   return `${email}.${createHmac('sha256', key).update(email).digest('hex')}`;
 }
@@ -28,7 +28,7 @@ export const load: PageServerLoad = async () => {
 };
 
 export const actions: Actions = {
-  'dev-login': async ({ request, cookies }) => {
+  'dev-login': async ({ request, cookies, url }) => {
     if (env.AUTH_BYPASS !== 'true') {
       return redirect(303, '/login');
     }
@@ -44,7 +44,9 @@ export const actions: Actions = {
       path: '/',
       httpOnly: true,
       sameSite: 'lax',
-      secure: true,
+      // HTTP staging/LAN hosts drop Secure cookies, which bounces the
+      // user back to /login in a loop. Match the request protocol instead.
+      secure: url.protocol === 'https:',
       maxAge: DEV_COOKIE_MAX_AGE
     });
 
