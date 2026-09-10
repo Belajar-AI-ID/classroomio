@@ -15,7 +15,6 @@
       orgSiteName: string;
       org: import('$features/app/types').AccountOrg | null;
       skipAuth: boolean;
-      authBypass: boolean;
       locals: App.Locals;
     };
   }
@@ -31,7 +30,7 @@
       return;
     }
 
-    if (data.skipAuth || data.authBypass) return;
+    if (data.skipAuth) return;
 
     if (isPublicRoute(path) && (path !== '/' || data.isOrgSite)) {
       return;

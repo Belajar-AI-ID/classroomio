@@ -15,7 +15,6 @@ interface LoadOutput {
   orgSiteName: string;
   isOrgSite: boolean;
   skipAuth: boolean;
-  authBypass: boolean;
   org: AccountOrg | null;
   baseMetaTags: MetaTagsProps;
   serverLang: string;
@@ -51,7 +50,6 @@ export const load = async ({ url, cookies, request, locals }): Promise<LoadOutpu
     orgSiteName: orgSiteInfo.orgSiteName,
     isOrgSite: orgSiteInfo.isOrgSite,
     skipAuth: orgSiteInfo.subdomain === 'play' || debugPlay === 'true',
-    authBypass: env.AUTH_BYPASS === 'true',
     org: orgSiteInfo.org,
     baseMetaTags: await getBaseMetaTags(url, orgSiteInfo),
     serverLang: request.headers?.get('accept-language') || '',
