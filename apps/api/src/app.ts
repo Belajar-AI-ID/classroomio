@@ -21,6 +21,7 @@ import { communityRouter } from '@api/routes/community';
 import { courseRouter } from '@api/routes/course';
 import { dashAnalyticsRouter } from '@api/routes/dash';
 import { domainRouter } from '@api/routes/domain/domain';
+import { getDevBypassSession, isDevAuthBypassEnabled } from '@api/middlewares/dev-auth-bypass';
 import { internalRouter } from '@api/routes/internal';
 import { inviteRouter } from '@api/routes/invite';
 import { jobsRouter } from '@api/routes/jobs';
@@ -71,6 +72,27 @@ export const app = new Hono()
       c.set('orgRoles', {});
 
       return next();
+    }
+
+    // DEV AUTH BYPASS — impersonate requests carrying a signed dev_user
+    // cookie as that cookie's user. Better Auth routes (/api/auth/*) are
+    // matched later and more specifically, so they still hit the real auth
+    // handler below.
+    if (isDevAuthBypassEnabled() && !c.req.path.startsWith('/api/auth/')) {
+      const bypassSession = await getDevBypassSession(c.req.header('cookie'));
+
+      if (bypassSession) {
+        c.set('user', bypassSession.user as never);
+        c.set('session', bypassSession.session as never);
+        c.set('orgRoles', bypassSession.orgRoles);
+
+        await next();
+
+        return;
+      }
+
+      // No (valid) dev cookie — fall through to the normal Better Auth
+      // lookup so non-dev sessions, if any, still work.
     }
 
     let session: Awaited<ReturnType<typeof auth.api.getSession>> | null = null;
@@ -228,7 +250,8 @@ export const app = new Hono()
 
     return c.json({
       session,
-      user
+      user,
+      orgRoles: c.get('orgRoles')
     });
   })
   .route('/onboarding', onboardingRouter)
