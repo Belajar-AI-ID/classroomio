@@ -19,12 +19,14 @@
   import { authSsoStore, ensureSsoInfoLoaded } from '$features/auth/utils/auth-sso-store';
 
   const emailFromUrl = page.url.searchParams.get('email') ?? '';
+  const directSsoProviderId = page.url.searchParams.get('ssoProvider')?.trim() ?? '';
   const isEmailPrefilled = !!emailFromUrl;
 
   let fields = $state(Object.assign({}, LOGIN_FIELDS, emailFromUrl ? { email: emailFromUrl } : {}));
 
   let submitError: string | undefined = $state();
   let loading = $state(false);
+  let directSsoStarted = $state(false);
   let errors = $state(Object.assign({}, LOGIN_FIELDS));
   /** Per-email discovery result; display uses this over org-level when set */
   let discoveryState = $state<SsoAuthState | null>(null);
@@ -66,6 +68,32 @@
       callbackURL: url
     });
   }
+
+  async function handleDirectSsoLogin() {
+    if (!directSsoProviderId || directSsoStarted) return;
+
+    directSsoStarted = true;
+    loading = true;
+
+    try {
+      await authClient.signIn.sso({
+        ...(fields.email ? { email: fields.email } : {}),
+        providerId: directSsoProviderId,
+        callbackURL: buildSsoRedirectUrl(redirectUrl)
+      });
+    } catch (error) {
+      const err = error as { error_description?: string; message?: string };
+      submitError = err?.error_description ?? err?.message ?? 'Unable to start SSO';
+      loading = false;
+      directSsoStarted = false;
+    }
+  }
+
+  $effect(() => {
+    if (directSsoProviderId && !directSsoStarted) {
+      void handleDirectSsoLogin();
+    }
+  });
 
   async function handleSubmit() {
     if (ssoState.required && ssoState.available) {

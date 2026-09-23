@@ -1,7 +1,7 @@
 import * as z from 'zod';
 
 // SSO Provider enum values
-export const SSO_PROVIDERS = ['OKTA', 'GOOGLE_WORKSPACE', 'AUTH0'] as const;
+export const SSO_PROVIDERS = ['OKTA', 'GOOGLE_WORKSPACE', 'AUTH0', 'CLERK'] as const;
 
 // Create SSO connection
 export const ZCreateSsoConnection = z.object({
