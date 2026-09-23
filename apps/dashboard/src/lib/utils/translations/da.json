@@ -3666,7 +3666,8 @@
           "providers": {
             "okta": "Okta",
             "google_workspace": "Google Workspace",
-            "auth0": "Auth0"
+            "auth0": "Auth0",
+            "clerk": "Clerk"
           }
         },
         "policies": {

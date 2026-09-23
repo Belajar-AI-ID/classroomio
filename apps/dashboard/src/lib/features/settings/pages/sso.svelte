@@ -58,7 +58,7 @@
     }
 
     const result = await ssoApi.createConnection({
-      provider: provider as 'OKTA' | 'GOOGLE_WORKSPACE' | 'AUTH0',
+      provider: provider as 'OKTA' | 'GOOGLE_WORKSPACE' | 'AUTH0' | 'CLERK',
       displayName,
       issuer,
       domain,
@@ -128,6 +128,8 @@
         return 'Google Workspace';
       case 'AUTH0':
         return 'Auth0';
+      case 'CLERK':
+        return 'Clerk';
       default:
         return p;
     }
@@ -275,6 +277,7 @@
               <Select.Item value="OKTA">Okta</Select.Item>
               <Select.Item value="GOOGLE_WORKSPACE">Google Workspace</Select.Item>
               <Select.Item value="AUTH0">Auth0</Select.Item>
+              <Select.Item value="CLERK">Clerk</Select.Item>
             </Select.Content>
           </Select.Root>
         </Field.Field>

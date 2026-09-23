@@ -3666,7 +3666,8 @@
           "providers": {
             "okta": "ओक्टा",
             "google_workspace": "गूगल कार्यक्षेत्र",
-            "auth0": "प्रामाणिक0"
+            "auth0": "प्रामाणिक0",
+            "clerk": "Clerk"
           }
         },
         "policies": {

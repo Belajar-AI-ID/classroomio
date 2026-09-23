@@ -2607,7 +2607,7 @@ export const exerciseTemplate = pgTable('exercise_template', {
 });
 
 // Organization SSO provider type (our app enum for display/categorization)
-export const organizationSsoProviderType = pgEnum('SSO_PROVIDER', ['OKTA', 'GOOGLE_WORKSPACE', 'AUTH0']);
+export const organizationSsoProviderType = pgEnum('SSO_PROVIDER', ['OKTA', 'GOOGLE_WORKSPACE', 'AUTH0', 'CLERK']);
 
 // Organization Auth Policy - stores SSO policies per org
 export const organizationAuthPolicy = pgTable(
